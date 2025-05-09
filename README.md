@@ -1,7 +1,3 @@
-Here is your updated `README.md` formatted for GitHub **with Swagger and sync handler references removed**, as requested:
-
----
-
 # Task Management API
 
 A RESTful API built with Node.js, Express.js, and MongoDB for managing users and tasks, featuring JWT authentication and an AI-powered task summary using a Large Language Model (LLM) API (e.g., XAI's Grok API). The project follows the Model-View-Controller (MVC) architecture, adheres to industry standards, and includes comprehensive testing and documentation.
@@ -312,6 +308,3 @@ Or deploy to **Render** using their platform documentation and similar environme
 
 This project is licensed under the [MIT License](./LICENSE).
 
----
-
-Let me know if you want me to convert this into a downloadable `README.md` file or add a badges section.
