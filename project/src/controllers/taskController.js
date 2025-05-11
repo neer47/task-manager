@@ -1,11 +1,7 @@
 import Task from '../models/taskModel.js';
-import { OpenAI } from 'openai';
+import { configureOpenAI } from "../config/openai-config.js";
 
-
-const openai = new OpenAI({
-  apiKey: "process.env.OPENAI_API_KEY",
-});
-
+const openai = configureOpenAI();
 // Create a new task
 export const createTask = async (req, res) => {
   try {
@@ -35,7 +31,7 @@ export const getTasks = async (req, res) => {
   try {
     const { page = 1, limit = 10, priority, dueDate } = req.query;
 
-    const query = { userId: req.user._id };
+    const query = { user: req.user._id };
     if (priority) query.priority = priority;
     if (dueDate) query.dueDate = new Date(dueDate);
 
@@ -114,38 +110,51 @@ export const deleteTask = async (req, res) => {
 
 
 export const summarizeTask = async (req, res) => {
-  const taskId = req.params.taskId;
+  const taskId = req.params.id;
   const userId = req.user._id;
+
+  console.log(`Incoming summarize request | Task ID: ${taskId} | User ID: ${userId}`);
 
   try {
     const task = await Task.findOne({ _id: taskId, user: userId });
-    console.log(task);
     if (!task) {
+      console.warn(`Task not found | taskId: ${taskId} | userId: ${userId}`);
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    console.log(`Task found: ${JSON.stringify(task, null, 2)}`);
+
     const prompt = `Summarize the following task description in one sentence: ${task.description}`;
 
-    const chatResponse = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 60,
-    });
+    let summary;
+    try {
+      console.log('Sending prompt to OpenAI:', prompt);
 
-    const summary = chatResponse.choices[0].message.content.trim();
+      const chatResponse = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: prompt },
+        ]
+      });
 
-    // Save the generated summary in the task
+      summary = chatResponse.choices[0].message.content.trim();
+      console.log(`Summary generated: ${summary}`);
+    } catch (openaiError) {
+      console.error('OpenAI API Error:', openaiError.message || openaiError);
+      return res.status(500).json({ message: 'OpenAI summarization failed' });
+    }
+
+    // Save the generated summary
     task.summary = summary;
     await task.save();
+    console.log('Summary saved to task');
 
     res.status(200).json({ taskId: task._id, summary });
   } catch (error) {
-    console.error('Error summarizing task:', error.message);
+    console.error('Error summarizing task:', error.message || error);
     res.status(500).json({ message: 'Failed to summarize task' });
   }
 };
+
 
